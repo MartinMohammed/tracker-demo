@@ -4,15 +4,41 @@ from rclpy.node import Node
 from sensor_msgs.msg import Image
 from vision_msgs.msg import Detection2D, BoundingBox2D, Pose2D, Point2D
 from cv_bridge import CvBridge
+import time
+from typing import Tuple
 
 INITIAL_BOUNDING_BOX = (458, 101, 105, 60)
+
+def get_xywh_from_bbox_2d(bbox: BoundingBox2D) -> Tuple[int, int, int, int]:
+    """
+    Calculate the coordinates and dimensions of a 2D bounding box.
+
+    Parameters:
+    - bbox (BoundingBox2D): The 2D bounding box object containing center position and size.
+
+    Returns:
+    - Tuple[int, int, int, int]: A tuple containing four integers representing the x-coordinate,
+      y-coordinate, width, and height of the bounding box.
+    """
+    center = bbox.center.position
+    size_x = bbox.size_x
+    size_y = bbox.size_y
+
+    x = int(center.x - (size_x / 2))
+    y = int(center.y - (size_y / 2))
+    w = int(size_x)
+    h = int(size_y)
+
+    return x, y, w, h
 
 class VideoSubscriberNode(Node):
     def __init__(self):
         super().__init__('video_subscriber')
         self.tracker = cv2.TrackerMIL_create()
         self.tracker_was_init = False
-        self.new_bbox = None
+        self.new_bbox: Tuple[int, int, int, int] = None
+        self.prev_time = time.time()
+        self.fps = 0
 
         self.image_subscription = self.create_subscription(
             Image,
@@ -30,7 +56,7 @@ class VideoSubscriberNode(Node):
         self.cv_bridge_ = CvBridge()
         self.get_logger().info("VideoSubscriber has been started.")
 
-    def publish_detection(self, bbox):
+    def publish_detection(self, bbox: Tuple[int, int, int, int]):
         x, y, w, h = bbox 
         detection_msg = Detection2D()
         bbox_msg = BoundingBox2D()
@@ -71,27 +97,33 @@ class VideoSubscriberNode(Node):
             if self.new_bbox:
                 self.tracker.init(frame, self.new_bbox)
                 self.new_bbox = None
-
+            
+            ok, tracker_bbox = self.tracker.update(frame)
+            if ok:
+                pt1 = (tracker_bbox[0], tracker_bbox[1])
+                pt2 = (tracker_bbox[0] + tracker_bbox[2], tracker_bbox[1] + tracker_bbox[3])
+                cv2.rectangle(frame, pt1=pt1, pt2=pt2, color=(0, 255, 0), thickness=2)
+                self.get_logger().info("Publish")
+                self.publish_detection(bbox=tracker_bbox)
             else:
-                ok, bbox = self.tracker.update(frame)
-                if ok:
-                    cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), 
-                                  (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3])), 
-                                  (0, 255, 0), 2)
-                    self.publish_detection(bbox)
-                else:
-                    self.get_logger().info("Tracking failure")
+                self.get_logger().info("Tracking failure")
+        
+            # Calculate FPS
+            current_time = time.time()
+            self.fps = 1 / (current_time - self.prev_time)
+            self.prev_time = current_time
 
-            cv2.imshow('Video Subscriber', frame)
+            # Display FPS on frame
+            cv2.putText(frame, f'FPS: {int(self.fps)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            cv2.imshow('Video Subscribero', frame)
             cv2.waitKey(1)
 
         except Exception as e:
             self.get_logger().error("Failed to convert image: %s" % str(e))
 
-    def detection_callback(self, msg):
+    def detection_callback(self, msg: Detection2D):
         if msg.bbox:
-            self.new_bbox = (msg.bbox.center.x, msg.bbox.center.y, 
-                             msg.bbox.size_x, msg.bbox.size_y)
+            self.new_bbox = get_xywh_from_bbox_2d(bbox=msg.bbox)
 
 def main(args=None):
     rclpy.init(args=args)
