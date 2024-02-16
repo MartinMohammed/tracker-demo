@@ -35,7 +35,7 @@ def get_xywh_from_bbox_2d(bbox: BoundingBox2D) -> Tuple[int, int, int, int]:
 
 class VideoSubscriberNode(Node):
     def __init__(self):
-        super().__init__("video_subscriber")
+        super().__init__("tracker")
         self.tracker = cv2.TrackerMIL_create()
         self.tracker_was_init = False
         self.new_bbox: Tuple[int, int, int, int] = None
@@ -54,7 +54,7 @@ class VideoSubscriberNode(Node):
             Detection2D, "detection/tracker", 10
         )
         self.cv_bridge_ = CvBridge()
-        self.get_logger().info("VideoSubscriber has been started.")
+        self.get_logger().info("Tracker Node has been started.")
 
     def publish_detection(self, bbox: Tuple[int, int, int, int]):
         x, y, w, h = bbox

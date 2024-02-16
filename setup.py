@@ -19,8 +19,7 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "video_publisher = tracker_demo.video_publisher:main",
-            "video_subscriber = tracker_demo.video_subscriber:main",
+            "tracker = tracker_demo.tracker:main",
         ],
     },
 )
