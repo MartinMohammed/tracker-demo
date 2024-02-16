@@ -47,7 +47,7 @@ class VideoSubscriberNode(Node):
         )
 
         self.detection_subscription = self.create_subscription(
-            Detection2D, "detection", self.detection_callback, 10
+            Detection2D, "detection/detector", self.detection_callback, 10
         )
 
         self.detection_publisher = self.create_publisher(
@@ -133,6 +133,7 @@ class VideoSubscriberNode(Node):
 
     def detection_callback(self, msg: Detection2D):
         if msg.bbox:
+            self.get_logger().info("Got detection from detector.")
             self.new_bbox = get_xywh_from_bbox_2d(bbox=msg.bbox)
 
 
