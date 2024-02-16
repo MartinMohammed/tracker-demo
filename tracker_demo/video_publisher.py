@@ -7,7 +7,7 @@ import os
 
 
 VIDEO_OF_INTEREST = "demo.mp4"
-FRAMES_PER_SECOND = 50
+FRAMES_PER_SECOND = 30
 
 class VideoPublisherNode(Node):
     def __init__(self):

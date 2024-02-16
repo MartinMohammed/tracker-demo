@@ -103,7 +103,6 @@ class VideoSubscriberNode(Node):
                 pt1 = (tracker_bbox[0], tracker_bbox[1])
                 pt2 = (tracker_bbox[0] + tracker_bbox[2], tracker_bbox[1] + tracker_bbox[3])
                 cv2.rectangle(frame, pt1=pt1, pt2=pt2, color=(0, 255, 0), thickness=2)
-                self.get_logger().info("Publish")
                 self.publish_detection(bbox=tracker_bbox)
             else:
                 self.get_logger().info("Tracking failure")
@@ -115,7 +114,7 @@ class VideoSubscriberNode(Node):
 
             # Display FPS on frame
             cv2.putText(frame, f'FPS: {int(self.fps)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            cv2.imshow('Video Subscribero', frame)
+            cv2.imshow('Video Subscriber', frame)
             cv2.waitKey(1)
 
         except Exception as e:

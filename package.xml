@@ -10,7 +10,6 @@
   <depend>rclpy</depend>
   <depend>cv_bridge</depend>
   <depend>sensor_msgs</depend>
-  <depend>example_interfaces</depend>
   <depend>opencv</depend>
   <depend>vision_msgs</depend>
 
