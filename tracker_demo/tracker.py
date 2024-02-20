@@ -7,9 +7,6 @@ from cv_bridge import CvBridge
 import time
 from typing import Tuple
 
-INITIAL_BOUNDING_BOX = (458, 101, 105, 60)
-
-
 def get_xywh_from_bbox_2d(bbox: BoundingBox2D) -> Tuple[int, int, int, int]:
     """
     Calculate the coordinates and dimensions of a 2D bounding box.
@@ -90,12 +87,29 @@ class VideoSubscriberNode(Node):
     def image_callback(self, msg):
         try:
             frame = self.cv_bridge_.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-
-            if not self.tracker_was_init_:
-                self.tracker_.init(frame, INITIAL_BOUNDING_BOX)
-                self.tracker_was_init_ = True
+            if not self.tracker_was_init_ and self.new_bbox_ is None:
+                self.get_logger().info("Skip tracking due to missing initialization of tracker.")
+                cv2.putText(
+                frame,
+                f"Tracker not initialized.",
+                (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                (0, 0, 255),
+                2,
+            )
+                # Show the frame and then leave. 
+                cv2.imshow("Video Subscriber", frame)
+                cv2.waitKey(1)
+                return
+            
+  
             if self.new_bbox_:
                 self.tracker_.init(frame, self.new_bbox_)
+                # self.new_bbox is not None hence we can initialize it. 
+                if not self.tracker_was_init_:
+                    self.tracker_was_init_ = True
+
                 self.get_logger().info("Tracker was reinitialized due to new bbox.")
                 self.new_bbox_ = None
 
