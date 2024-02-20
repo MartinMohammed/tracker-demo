@@ -36,11 +36,11 @@ def get_xywh_from_bbox_2d(bbox: BoundingBox2D) -> Tuple[int, int, int, int]:
 class VideoSubscriberNode(Node):
     def __init__(self):
         super().__init__("tracker")
-        self.tracker = cv2.TrackerMIL_create()
-        self.tracker_was_init = False
-        self.new_bbox: Tuple[int, int, int, int] = None
-        self.prev_time = time.time()
-        self.fps = 0
+        self.tracker_ = cv2.TrackerMIL_create()
+        self.tracker_was_init_ = False
+        self.new_bbox_: Tuple[int, int, int, int] = None
+        self.prev_time_ = time.time()
+        self.fps_ = 0
 
         self.image_subscription = self.create_subscription(
             Image, "image", self.image_callback, 10
@@ -91,14 +91,15 @@ class VideoSubscriberNode(Node):
         try:
             frame = self.cv_bridge_.imgmsg_to_cv2(msg, desired_encoding="bgr8")
 
-            if not self.tracker_was_init:
-                self.tracker.init(frame, INITIAL_BOUNDING_BOX)
-                self.tracker_was_init = True
-            if self.new_bbox:
-                self.tracker.init(frame, self.new_bbox)
-                self.new_bbox = None
+            if not self.tracker_was_init_:
+                self.tracker_.init(frame, INITIAL_BOUNDING_BOX)
+                self.tracker_was_init_ = True
+            if self.new_bbox_:
+                self.tracker_.init(frame, self.new_bbox_)
+                self.get_logger().info("Tracker was reinitialized due to new bbox.")
+                self.new_bbox_ = None
 
-            ok, tracker_bbox = self.tracker.update(frame)
+            ok, tracker_bbox = self.tracker_.update(frame)
             if ok:
                 pt1 = (tracker_bbox[0], tracker_bbox[1])
                 pt2 = (
@@ -112,13 +113,13 @@ class VideoSubscriberNode(Node):
 
             # Calculate FPS
             current_time = time.time()
-            self.fps = 1 / (current_time - self.prev_time)
-            self.prev_time = current_time
+            self.fps_ = 1 / (current_time - self.prev_time_)
+            self.prev_time_ = current_time
 
             # Display FPS on frame
             cv2.putText(
                 frame,
-                f"FPS: {int(self.fps)}",
+                f"FPS: {int(self.fps_)}",
                 (10, 30),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 1,
@@ -134,7 +135,7 @@ class VideoSubscriberNode(Node):
     def detection_callback(self, msg: Detection2D):
         if msg.bbox:
             self.get_logger().info("Got detection from detector.")
-            self.new_bbox = get_xywh_from_bbox_2d(bbox=msg.bbox)
+            self.new_bbox_ = get_xywh_from_bbox_2d(bbox=msg.bbox)
 
 
 def main(args=None):
